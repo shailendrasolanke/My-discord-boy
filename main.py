@@ -6,8 +6,9 @@ import aiosqlite
 from flask import Flask
 from threading import Thread
 
-# Web Server (For Render Free Tier)
+# Web Server (For Render)
 app = Flask('')
+
 @app.route('/')
 def home():
     return "Bot is Alive!"
@@ -45,18 +46,14 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name=".cmd | Dot Commands"))
 
 async def load_extensions():
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f'cogs.{filename[:-3]}')
+    if os.path.exists('./cogs'):
+        for filename in os.listdir('./cogs'):
+            if filename.endswith('.py'):
+                await bot.load_extension(f'cogs.{filename[:-3]}')
 
 async def main():
     keep_alive()
     async with bot:
-        await load_extensions()
-        await bot.start(os.getenv('DISCORD_TOKEN'))
-
-if __name__ == '__main__':
-    asyncio.run(main())
         await load_extensions()
         await bot.start(os.getenv('DISCORD_TOKEN'))
 
