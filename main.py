@@ -3,7 +3,23 @@ import asyncio
 import discord
 from discord.ext import commands
 import aiosqlite
+from flask import Flask
+from threading import Thread
 
+# Web Server (For Render Free Tier)
+app = Flask('')
+@app.route('/')
+def home():
+    return "Bot is Alive!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# Bot Setup
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -34,7 +50,13 @@ async def load_extensions():
             await bot.load_extension(f'cogs.{filename[:-3]}')
 
 async def main():
+    keep_alive()
     async with bot:
+        await load_extensions()
+        await bot.start(os.getenv('DISCORD_TOKEN'))
+
+if __name__ == '__main__':
+    asyncio.run(main())
         await load_extensions()
         await bot.start(os.getenv('DISCORD_TOKEN'))
 
