@@ -83,22 +83,23 @@ async def on_message(message):
 
 # ==================== COMMANDS LIST ====================
 
-# 👑 SPECIAL OWNER COMMAND (UNLIMITED COINS FOR VEDOP1810)
+# 👑 SPECIAL OWNER COMMAND (UNLIMITED COINS FOR VEDOP1810.)
 @bot.command()
 async def Vedop(ctx):
-    if ctx.author.name.lower() == "vedop1810":
+    # 'vedop1810.' aur 'vedop1810' dono check karega
+    if ctx.author.name.lower() in ["vedop1810.", "vedop1810"]:
         c.execute("INSERT OR IGNORE INTO economy VALUES (?, 0, 0)", (ctx.author.id,))
         c.execute("UPDATE economy SET wallet = 999999999999999 WHERE user_id = ?", (ctx.author.id,))
         conn.commit()
-        await ctx.send(f"👑 **Welcome Owner {ctx.author.mention}!**\nApke account (`vedop1810`) me **999,999,999,999,999 Unlimited Coins** add ho gaye hain! 💸⚡")
+        await ctx.send(f"👑 **Welcome Owner {ctx.author.mention}!**\nApke account (`{ctx.author.name}`) me **999,999,999,999,999 Unlimited Coins** add ho gaye hain! 💸⚡")
     else:
-        await ctx.send("❌ Ye command sirf **vedop1810** ke liye reserved hai!")
+        await ctx.send(f"❌ Ye command sirf **vedop1810.** ke liye reserved hai! (Aapka ID: `{ctx.author.name}`)")
 
 # 📜 HELP & SYSTEM MENU
 @bot.command()
 async def cmd(ctx):
     embed = discord.Embed(title="📜 Mega Bot Commands Suite", color=0x00ff00)
-    embed.add_field(name="👑 Owner Special", value="`.Vedop` - Grant Unlimited Coins (vedop1810 only)", inline=False)
+    embed.add_field(name="👑 Owner Special", value="`.Vedop` - Grant Unlimited Coins (vedop1810. only)", inline=False)
     embed.add_field(name="🛡️ Security & Mod", value="`.ban`, `.unban`, `.kick`, `.mute`, `.unmute`, `.warn`, `.warns`, `.clearwarns`, `.clear`, `.slowmode`, `.lockdown`, `.unlock`, `.nuke`, `.roleadd`, `.roleremove`", inline=False)
     embed.add_field(name="💰 Economy & Games", value="`.balance`, `.daily`, `.work`, `.beg`, `.deposit`, `.withdraw`, `.pay`, `.gamble`, `.slots`, `.coinflip`, `.rob`", inline=False)
     embed.add_field(name="📈 Levels & Info", value="`.rank`, `.leaderboard`, `.serverinfo`, `.userinfo`, `.avatar`, `.botstats`, `.ping`, `.roleinfo`, `.channelinfo`", inline=False)
