@@ -3,4 +3,3 @@ flask
 yt-dlp
 PyNaCl
 ffmpeg-static
-
