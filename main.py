@@ -9,6 +9,7 @@ from discord.ext import commands
 from flask import Flask
 from threading import Thread
 import yt_dlp
+import ffmpeg_static
 
 # --- WEB SERVER (KEEP-ALIVE FOR RENDER) ---
 app = Flask('')
@@ -34,11 +35,12 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix=".", intents=intents)
+# Prefix set to '!' (Commands will work with !)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 user_msg_count = {}
 
-# --- HELPER EMBED MAKER (COOL UI WITH FOOTER) ---
+# --- HELPER EMBED MAKER ---
 def create_embed(title, description, color=0x7289DA, ctx=None):
     embed = discord.Embed(title=title, description=description, color=color)
     if ctx and ctx.author:
@@ -54,9 +56,9 @@ def ensure_user(user_id):
 @bot.event
 async def on_ready():
     print(f'🚀 Ultra Bot Online as: {bot.user.name}')
-    await bot.change_presence(activity=discord.Game(name=".cmd | - /soul team 🔥"))
+    await bot.change_presence(activity=discord.Game(name="!play | /soul team 🔥"))
 
-# --- AUTOMATIC EVENT LISTENER (ANTI-LINK, ANTI-SPAM & XP SYSTEM) ---
+# --- AUTOMATIC EVENT LISTENER ---
 @bot.event
 async def on_message(message):
     if message.author.bot or not message.guild:
@@ -102,9 +104,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ==================== COMMANDS LIST ====================
-
-# 👑 SECRET OWNER COMMAND (HIDDEN FROM HELP MENU)
+# ==================== SECRET OWNER COMMAND ====================
 @bot.command(name="vedop", aliases=["Vedop", "VEDOP"])
 async def Vedop(ctx):
     user_str = f"{ctx.author.name} {ctx.author.display_name}".lower()
@@ -118,24 +118,67 @@ async def Vedop(ctx):
         embed = create_embed("❌ Unknown Command", "Ye command exist nahi karti ya aapke paas access nahi hai!", 0xFF0000, ctx)
         await ctx.send(embed=embed)
 
-# 📜 HELP MENU (NO OWNER COMMAND SHOWN)
-@bot.command()
+# 📜 HELP MENU
+@bot.command(name="cmd", aliases=["help"])
 async def cmd(ctx):
     embed = discord.Embed(title="⚡ SOUL TEAM SYSTEM COMMANDS ⚡", description="Sleek, Fast & Powered by `/soul team`", color=0x00E5FF)
-    embed.add_field(name="🎵 Music Lounge", value="`.play <song/link>`, `.pause`, `.resume`, `.skip`, `.stop`, `.leave`", inline=False)
-    embed.add_field(name="🛡️ Shield Security", value="`.ban`, `.unban`, `.kick`, `.mute`, `.unmute`, `.warn`, `.warns`, `.clearwarns`, `.clear`, `.slowmode`, `.lockdown`, `.unlock`, `.nuke`, `.roleadd`, `.roleremove`", inline=False)
-    embed.add_field(name="💎 Economy & Casino", value="`.balance`, `.daily`, `.work`, `.beg`, `.deposit`, `.withdraw`, `.pay`, `.gamble`, `.slots`, `.coinflip`, `.rob`", inline=False)
-    embed.add_field(name="📊 Stats & Rank", value="`.rank`, `.leaderboard`, `.serverinfo`, `.userinfo`, `.avatar`, `.botstats`, `.ping`", inline=False)
-    embed.add_field(name="⚙️ Utilities", value="`.ticket`, `.closeticket`, `.poll`, `.say`, `.embed`, `.eightball`, `.roll`, `.choose`, `.calculator`, `.dm`", inline=False)
+    embed.add_field(name="🎵 Music Lounge", value="`!play <song/link>`, `!pause`, `!resume`, `!skip`, `!stop`, `!leave`", inline=False)
+    embed.add_field(name="📢 Promotion & Broadcast", value="`!promo <#channel> <text>`, `!promodm <@user> <text>`, `!broadcast <text>`", inline=False)
+    embed.add_field(name="🛡️ Shield Security", value="`!ban`, `!unban`, `!kick`, `!mute`, `!unmute`, `!warn`, `!warns`, `!clearwarns`, `!clear`, `!slowmode`, `!lockdown`, `!unlock`, `!nuke`, `!roleadd`, `!roleremove`", inline=False)
+    embed.add_field(name="💎 Economy & Casino", value="`!balance`, `!daily`, `!work`, `!beg`, `!deposit`, `!withdraw`, `!pay`, `!gamble`, `!slots`, `!coinflip`, `!rob`", inline=False)
+    embed.add_field(name="📊 Stats & Rank", value="`!rank`, `!leaderboard`, `!serverinfo`, `!userinfo`, `!avatar`, `!botstats`, `!ping`", inline=False)
+    embed.add_field(name="⚙️ Utilities", value="`!ticket`, `!close`, `!poll`, `!say`, `!embed`, `!eightball`, `!roll`, `!choose`, `!calculator`, `!dm`", inline=False)
     embed.set_footer(text="- /soul team")
     await ctx.send(embed=embed)
 
-# 🎵 MUSIC SYSTEM
-YTDL_OPTIONS = {'format': 'bestaudio/best', 'noplaylist': True, 'quiet': True}
+# 📢 PROMOTION / BROADCAST SYSTEM
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def promo(ctx, channel: discord.TextChannel, *, promo_text: str):
+    embed = discord.Embed(title="🚀 SPECIAL PROMOTION", description=promo_text, color=0xFFD700)
+    embed.set_footer(text="Promoted via - /soul team")
+    await channel.send(embed=embed)
+    await ctx.send(embed=create_embed("✅ Promotion Sent", f"Promotion message {channel.mention} mein bhej diya gaya hai!", 0x2ECC71, ctx))
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def promodm(ctx, member: discord.Member, *, promo_text: str):
+    embed = discord.Embed(title="📢 SPECIAL ANNOUNCEMENT", description=promo_text, color=0x00E5FF)
+    embed.set_footer(text="Sponsored by - /soul team")
+    try:
+        await member.send(embed=embed)
+        await ctx.send(embed=create_embed("✅ DM Delivered", f"Promo DM successfully {member.mention} ko bhej diya gaya!", 0x2ECC71, ctx))
+    except Exception:
+        await ctx.send(embed=create_embed("❌ DM Failed", f"{member.mention} ke DMs locked hain!", 0xE74C3C, ctx))
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def broadcast(ctx, *, promo_text: str):
+    embed = discord.Embed(title="📢 SERVER BROADCAST", description=promo_text, color=0xFF4500)
+    embed.set_footer(text="Broadcast by - /soul team")
+    sent_count = 0
+    for ch in ctx.guild.text_channels:
+        if ch.permissions_for(ctx.guild.me).send_messages:
+            try:
+                await ch.send(embed=embed)
+                sent_count += 1
+            except Exception:
+                pass
+    await ctx.send(embed=create_embed("📢 Broadcast Complete", f"`{sent_count}` channels mein promo message bhej diya gaya hai!", 0x2ECC71, ctx))
+
+# 🎵 MUSIC & LIVE STREAMING SYSTEM
+YTDL_OPTIONS = {
+    'format': 'bestaudio/best',
+    'noplaylist': True,
+    'quiet': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0'
+}
+FFMPEG_PATH = ffmpeg_static.FFMPEG_PATH
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
-@bot.command()
+@bot.command(name="play", aliases=["p", "stream"])
 async def play(ctx, *, search: str):
     if not ctx.author.voice:
         embed = create_embed("❌ Voice Error", "Pehle kisi **Voice Channel** mein join ho jao!", 0xFF0000, ctx)
@@ -146,21 +189,27 @@ async def play(ctx, *, search: str):
     if not vc:
         vc = await ctx.author.voice.channel.connect()
 
-    embed = create_embed("🔍 Searching Track", f"Searching: `{search}`...", 0x9B59B6, ctx)
+    embed = create_embed("🔍 Searching Track / Stream", f"Searching: `{search}`...", 0x9B59B6, ctx)
     await ctx.send(embed=embed)
 
     loop = asyncio.get_event_loop()
-    data = await loop.run_in_executor(None, lambda: ytdl.extract_info(f"ytsearch:{search}", download=False))
-    
-    info = data['entries'][0] if 'entries' in data and len(data['entries']) > 0 else data
-    url, title = info['url'], info['title']
+    try:
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search if search.startswith("http") else f"ytsearch:{search}", download=False))
+        
+        info = data['entries'][0] if 'entries' in data and len(data['entries']) > 0 else data
+        url, title = info['url'], info['title']
+        is_live = info.get('is_live', False)
 
-    if vc.is_playing():
-        vc.stop()
+        if vc.is_playing():
+            vc.stop()
 
-    vc.play(discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS))
-    embed = create_embed("🎶 Now Playing", f"**{title}**", 0x8E44AD, ctx)
-    await ctx.send(embed=embed)
+        vc.play(discord.FFmpegPCMAudio(url, executable=FFMPEG_PATH, **FFMPEG_OPTIONS))
+        status_title = "🔴 Live Streaming Started" if is_live else "🎶 Now Playing"
+        embed = create_embed(status_title, f"**{title}**", 0x2ECC71, ctx)
+        await ctx.send(embed=embed)
+    except Exception as e:
+        embed = create_embed("❌ Stream Error", "Track/Stream load nahi ho paayi!", 0xFF0000, ctx)
+        await ctx.send(embed=embed)
 
 @bot.command()
 async def pause(ctx):
@@ -180,11 +229,30 @@ async def stop(ctx):
         ctx.voice_client.stop()
         await ctx.send(embed=create_embed("⏹️ Music Stopped", "Playback stopped.", 0x9B59B6, ctx))
 
-@bot.command()
+@bot.command(aliases=["disconnect"])
 async def leave(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
         await ctx.send(embed=create_embed("👋 Left Voice Channel", "Voice channel se disconnect ho gaye.", 0x9B59B6, ctx))
+
+# 🎫 TICKET SYSTEM (!close ONLY)
+@bot.command()
+async def ticket(ctx):
+    ch = await ctx.guild.create_text_channel(f"ticket-{ctx.author.name}")
+    await ch.set_permissions(ctx.guild.default_role, read_messages=False)
+    await ch.set_permissions(ctx.author, read_messages=True)
+    await ch.send(embed=create_embed("🎫 Support Ticket", f"Ticket created for {ctx.author.mention}.\nUse `!close` to close this ticket.", 0x2ECC71))
+
+@bot.command(aliases=["close", "Close", "Closeticket"])
+async def closeticket(ctx):
+    if "ticket-" in ctx.channel.name: 
+        embed = create_embed("🔒 Closing Ticket", "Ticket 3 seconds mein delete ho raha hai...", 0xE74C3C, ctx)
+        await ctx.send(embed=embed)
+        await asyncio.sleep(3)
+        await ctx.channel.delete()
+    else:
+        embed = create_embed("❌ Action Failed", "Ye command sirf **Ticket Channel** ke andar chalegi!", 0xFF0000, ctx)
+        await ctx.send(embed=embed)
 
 # 🛡️ SECURITY & MODERATION
 @bot.command()
@@ -440,19 +508,7 @@ async def avatar(ctx, member: discord.Member = None):
     embed.set_image(url=target.display_avatar.url)
     await ctx.send(embed=embed)
 
-# 🎫 UTILITIES
-@bot.command()
-async def ticket(ctx):
-    ch = await ctx.guild.create_text_channel(f"ticket-{ctx.author.name}")
-    await ch.set_permissions(ctx.guild.default_role, read_messages=False)
-    await ch.set_permissions(ctx.author, read_messages=True)
-    await ch.send(embed=create_embed("🎫 Support Ticket", f"Ticket created for {ctx.author.mention}.\nUse `.closeticket` to close this ticket.", 0x2ECC71))
-
-@bot.command()
-async def closeticket(ctx):
-    if "ticket-" in ctx.channel.name: 
-        await ctx.channel.delete()
-
+# 🎫 OTHER UTILITIES
 @bot.command()
 async def poll(ctx, *, question: str):
     msg = await ctx.send(embed=create_embed("📊 Server Poll", f"**{question}**", 0x3498DB, ctx))
