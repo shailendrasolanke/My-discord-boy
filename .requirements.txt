@@ -1,5 +1,4 @@
-discord.py
-flask
-yt-dlp
-PyNaCl
-ffmpeg-static
+discord.py>=2.3.2
+Flask>=3.0.0
+yt-dlp>=2024.03.10
+pyNaCl>=1.5.0
